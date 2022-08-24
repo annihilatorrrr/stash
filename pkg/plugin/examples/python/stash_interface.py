@@ -15,7 +15,7 @@ class StashInterface:
 		self.port = conn['Port']
 		scheme = conn['Scheme']
 
-		self.url = scheme + "://localhost:" + str(self.port) + "/graphql"
+		self.url = f"{scheme}://localhost:{str(self.port)}/graphql"
 
 		# Session cookie for authentication
 		self.cookies = {
@@ -23,23 +23,24 @@ class StashInterface:
 		}
 
 	def __callGraphQL(self, query, variables = None):
-		json = {}
-		json['query'] = query
+		json = {'query': query}
 		if variables != None:
 			json['variables'] = variables
-		
+
 		# handle cookies
 		response = requests.post(self.url, json=json, headers=self.headers, cookies=self.cookies)
-		
-		if response.status_code == 200:
-			result = response.json()
-			if result.get("error", None):
-				for error in result["error"]["errors"]:
-					raise Exception("GraphQL error: {}".format(error))
-			if result.get("data", None):
-				return result.get("data")
-		else:
-			raise Exception("GraphQL query failed:{} - {}. Query: {}. Variables: {}".format(response.status_code, response.content, query, variables))
+
+		if response.status_code != 200:
+			raise Exception(
+				f"GraphQL query failed:{response.status_code} - {response.content}. Query: {query}. Variables: {variables}"
+			)
+
+		result = response.json()
+		if result.get("error", None):
+			for error in result["error"]["errors"]:
+				raise Exception(f"GraphQL error: {error}")
+		if result.get("data", None):
+			return result.get("data")
 
 	def findTagIdWithName(self, name):
 		query = """
@@ -52,11 +53,10 @@ query {
 		"""
 
 		result = self.__callGraphQL(query)
-		
-		for tag in result["allTags"]:
-			if tag["name"] == name:
-				return tag["id"]
-		return None
+
+		return next(
+			(tag["id"] for tag in result["allTags"] if tag["name"] == name), None
+		)
 
 	def createTagWithName(self, name):
 		query = """
@@ -99,7 +99,7 @@ query findScenes($filter: FindFilterType!) {
   }
 }
 """
-		
+
 		variables = {'filter': {
 			'per_page': 1,
 			'sort': 'random'

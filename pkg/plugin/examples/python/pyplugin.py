@@ -13,21 +13,15 @@ def main():
 
 	if len(sys.argv) < 2:
 		input = readJSONInput()
-		log.LogDebug("Raw input: %s" % json.dumps(input))
+		log.LogDebug(f"Raw input: {json.dumps(input)}")
 	else:
 		log.LogDebug("Using command line inputs")
 		mode = sys.argv[1]
-		log.LogDebug("Command line inputs: {}".format(sys.argv[1:]))
-		
-		input = {}
-		input['args'] = {
-			"mode": mode
-		}
+		log.LogDebug(f"Command line inputs: {sys.argv[1:]}")
 
-		# just some hard-coded values
-		input['server_connection'] = {
-			"Scheme": "http",
-			"Port":   9999,
+		input = {
+			'args': {"mode": mode},
+			'server_connection': {"Scheme": "http", "Port": 9999},
 		}
 
 	output = {}
@@ -44,7 +38,7 @@ def run(input, output):
 	modeArg = input['args']["mode"]
 
 	try:
-		if modeArg == "" or modeArg == "add":
+		if modeArg in ["", "add"]:
 			client = StashInterface(input["server_connection"])
 			addTag(client)
 		elif modeArg == "remove":
@@ -63,14 +57,11 @@ def run(input, output):
 
 def doLongTask():
 	total = 100
-	upTo = 0
-
 	log.LogInfo("Doing long task")
-	while upTo < total:
+	for upTo in range(total):
 		time.sleep(1)
 
 		log.LogProgress(float(upTo) / float(total))
-		upTo = upTo + 1
 
 def doIndefiniteTask():
 	log.LogWarning("Sleeping indefinitely")
@@ -81,18 +72,15 @@ def addTag(client):
 	tagName = "Hawwwwt"
 	tagID = client.findTagIdWithName(tagName)
 
-	if tagID == None:
+	if tagID is None:
 		tagID = client.createTagWithName(tagName)
 
 	scene = client.findRandomSceneId()
 
-	if scene == None:
+	if scene is None:
 		raise Exception("no scenes to add tag to")
 
-	tagIds = []
-	for t in scene["tags"]:
-		tagIds.append(t["id"])
-	
+	tagIds = [t["id"] for t in scene["tags"]]
 	# remove first to ensure we don't re-add the same id
 	try:
 		tagIds.remove(tagID)
@@ -106,14 +94,14 @@ def addTag(client):
 		"tag_ids": tagIds
 	}
 
-	log.LogInfo("Adding tag to scene {}".format(scene["id"]))
+	log.LogInfo(f'Adding tag to scene {scene["id"]}')
 	client.updateScene(input)
 
 def removeTag(client):
 	tagName = "Hawwwwt"
 	tagID = client.findTagIdWithName(tagName)
 
-	if tagID == None:
+	if tagID is None:
 		log.LogInfo("Tag does not exist. Nothing to remove")
 		return
 
